@@ -144,17 +144,6 @@ Its value is instead in being technically sound, coherent with the challenge goa
 - connects predictions back to the original challenge requirements
 - acknowledges both strengths and limitations
 
-## Visual Outputs
-
-Generated artifacts are saved in `docs/`:
-
-- `training_curves.png`
-- `confusion_matrix.png`
-- `segmentation_results.png`
-- `inference_demo.png`
-
-These figures help tell the story from training behavior to final predictions and visual lesion estimation.
-
 ### Segmentation Examples
 
 ![Segmentation results](docs/segmentation_results.png)
