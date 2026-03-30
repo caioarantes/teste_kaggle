@@ -66,6 +66,109 @@ The final demo function, `predict_and_segment()`, returns:
 
 So the output is not just "what disease is this?" but also "how much of the visible leaf seems affected?"
 
+## Why This Approach Makes Sense
+
+The challenge looks simple when written in one sentence, but the image actually contains several layers of information. A healthy leaf is not defined only by its species. Disease appears through color shifts, texture changes, spots, mold patterns, necrotic regions, and the relative proportion of damaged tissue. That is why the project uses a hybrid pipeline instead of a single rule.
+
+### From Pixels to Symptoms
+
+A convolutional neural network is useful here because it learns visual patterns hierarchically:
+
+- early layers detect edges, color gradients, and fine textures
+- middle layers capture spots, veins, and lesion shapes
+- deeper layers combine those clues into class-level disease signatures
+
+This fits plant pathology well, because the difference between two classes may begin as a small color or texture cue and end as a recognizable disease pattern.
+
+### Why Transfer Learning
+
+Training a vision model from scratch would ask too much from a relatively modest labeled dataset. Transfer learning is the practical answer. The model begins with ImageNet-trained visual features and then adapts them to plant images.
+
+The intuition is simple:
+
+- general features like edges and textures transfer well across image domains
+- fine-tuning converges faster than training from zero
+- pretraining reduces the amount of data needed to reach useful performance
+
+That is also why the training is split into two phases:
+
+- first, train the classification head while the backbone stays frozen
+- then, unfreeze the full network and fine-tune with a smaller learning rate
+
+This stabilizes training early and avoids damaging the pretrained representation too aggressively.
+
+### Why EfficientNet-B0
+
+EfficientNet-B0 was chosen because it offers a strong tradeoff between model capacity and practicality.
+
+- it is compact enough to train comfortably in this project setup
+- it still captures rich visual detail
+- it is a strong transfer-learning baseline for 224x224 natural images
+
+In storytelling terms, it is the right kind of tool for this stage of the project: strong enough to be credible, light enough to stay practical.
+
+### Why Class Imbalance Needed Special Treatment
+
+The biggest trap in this dataset is imbalance. Some classes appear often enough that a model can learn them easily, while rare classes can be drowned out during training. If we only optimized for overall accuracy, the model could look better than it really is.
+
+Two mechanisms were used together:
+
+- `WeightedRandomSampler` makes minority classes appear more often during training
+- class-weighted cross-entropy increases the penalty for mistakes on underrepresented classes
+
+This combination matters because it shifts learning pressure toward the rare classes instead of letting the majority classes dominate every epoch.
+
+### Why Data Augmentation and Normalization Matter
+
+Even though PlantVillage images are controlled, the model still benefits from seeing small variations during training.
+
+- random flips help because leaves do not have a fixed orientation
+- small rotations make the model less sensitive to pose
+- color jitter helps simulate moderate lighting variation
+
+Normalization was also computed from the dataset itself so the model sees a more consistent input distribution. None of these steps are flashy, but together they improve stability and generalization.
+
+### Why HSV Segmentation Was Added
+
+Classification answers "what is this?" but the challenge also asks for quantification. That is where the second branch comes in.
+
+Instead of training a full segmentation network without pixel-level annotations, the project uses HSV color thresholding:
+
+- green ranges estimate healthy leaf tissue
+- yellow/brown ranges estimate diseased lesion regions
+
+This choice is not the most sophisticated possible, but it is aligned with the data. PlantVillage images have controlled backgrounds and lighting, which makes a color-space method surprisingly effective as a first quantification baseline.
+
+### How the Two Parts Work Together
+
+The project can be read as a small decision pipeline:
+
+```text
+Input leaf image
+    |
+    +--> EfficientNet-B0 classifier
+    |      -> top-1 prediction
+    |      -> top-3 classes
+    |      -> confidence scores
+    |
+    +--> HSV segmentation
+           -> healthy leaf coverage
+           -> lesion coverage
+```
+
+That is the key theoretical idea behind the repository: classification and quantification are related, but they do not need to be solved by exactly the same mechanism.
+
+### How Success Was Measured
+
+Because the classes are imbalanced, accuracy alone would hide important failures. The evaluation therefore emphasizes:
+
+- precision and recall at the class level
+- F1-score as the balance between the two
+- macro F1 because it gives each class equal importance
+- confusion matrices to reveal which diseases look similar to the model
+
+For segmentation, the project uses visual inspection and coverage percentages rather than IoU-style metrics, because the dataset does not provide pixel-level ground-truth masks.
+
 ## Results
 
 The most important outcome is that the model does more than memorize the dominant classes.
@@ -230,7 +333,6 @@ This is the most practical output of the project. Each panel combines classifica
 - `notebooks/notebook2_eda.ipynb`: exploratory data analysis and normalization statistics
 - `notebooks/notebook3_train.ipynb`: model training
 - `notebooks/notebook4_eval.ipynb`: evaluation, segmentation, and inference demo
-- `docs/theoretical_basis.md`: conceptual explanation of the approach
 - `models/`: saved model artifacts
 
 ## How To Run
