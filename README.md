@@ -107,6 +107,16 @@ EfficientNet-B0 was chosen because it offers a strong tradeoff between model cap
 
 In storytelling terms, it is the right kind of tool for this stage of the project: strong enough to be credible, light enough to stay practical.
 
+There is also a useful architectural idea behind EfficientNet. Instead of scaling only one thing, such as depth or width, EfficientNet scales three dimensions together:
+
+- depth: how many layers the network has
+- width: how many channels each layer uses
+- resolution: how much visual detail enters the model
+
+That balance matters because leaf disease cues live at different scales. Some are global color shifts, while others are local spots or edge irregularities. EfficientNet is designed to preserve that balance efficiently.
+
+It also uses Squeeze-and-Excitation blocks, which act like channel-wise attention. In plain terms, the network learns which feature maps matter most and boosts them. For plant images, that can help amplify disease-relevant color and texture channels while suppressing less useful background information.
+
 ### Why Class Imbalance Needed Special Treatment
 
 The biggest trap in this dataset is imbalance. Some classes appear often enough that a model can learn them easily, while rare classes can be drowned out during training. If we only optimized for overall accuracy, the model could look better than it really is.
@@ -118,6 +128,14 @@ Two mechanisms were used together:
 
 This combination matters because it shifts learning pressure toward the rare classes instead of letting the majority classes dominate every epoch.
 
+The idea can be written simply. If a class appears less often, it receives a larger weight:
+
+```text
+sample weight ~ 1 / class count
+```
+
+So a rare class contributes more often during sampling and more strongly during loss computation. That does not magically solve imbalance, but it does stop the model from learning the easy majority classes first and forgetting the rest.
+
 ### Why Data Augmentation and Normalization Matter
 
 Even though PlantVillage images are controlled, the model still benefits from seeing small variations during training.
@@ -127,6 +145,28 @@ Even though PlantVillage images are controlled, the model still benefits from se
 - color jitter helps simulate moderate lighting variation
 
 Normalization was also computed from the dataset itself so the model sees a more consistent input distribution. None of these steps are flashy, but together they improve stability and generalization.
+
+Another useful detail is that augmentation is label-preserving. Rotating or flipping a leaf does not change its disease label, so those transformations increase diversity without changing the meaning of the image. This is a practical way to make a modest dataset behave like a slightly larger one.
+
+The same logic applies to normalization. Pixel values are centered and scaled channel by channel so that the network receives more stable inputs:
+
+```text
+normalized pixel = (pixel - mean) / std
+```
+
+That makes optimization smoother and helps the pretrained backbone adapt to the new dataset.
+
+### Why AdamW and Cosine Scheduling
+
+Optimization is part of the theory too. This project uses AdamW because it combines adaptive learning rates with explicit weight decay, which tends to generalize better than plain Adam in many vision tasks.
+
+The learning rate is then reduced with cosine annealing. Instead of dropping in a sudden step, it decreases smoothly over time. Conceptually, that means:
+
+- early training can move quickly
+- later training makes smaller corrections
+- fine-tuning becomes less destructive to pretrained features
+
+This pairs naturally with the two-phase training strategy.
 
 ### Why HSV Segmentation Was Added
 
@@ -138,6 +178,23 @@ Instead of training a full segmentation network without pixel-level annotations,
 - yellow/brown ranges estimate diseased lesion regions
 
 This choice is not the most sophisticated possible, but it is aligned with the data. PlantVillage images have controlled backgrounds and lighting, which makes a color-space method surprisingly effective as a first quantification baseline.
+
+This is also a good place to explain why HSV is preferred over RGB. In RGB, color and brightness are entangled. In HSV, they are separated into:
+
+- hue: the actual color family
+- saturation: how pure or vivid the color is
+- value: brightness
+
+That makes thresholding more intuitive. Healthy tissue usually stays in the green hue range, while lesions drift toward yellow, brown, or reddish tones. Because hue is separated from brightness, the segmentation is easier to reason about than a direct RGB rule.
+
+In simplified form, the two coverage measures are:
+
+```text
+green coverage   = green-mask pixels   / total image pixels
+disease coverage = lesion-mask pixels  / total image pixels
+```
+
+These are not clinical measurements, but they are useful interpretable proxies.
 
 ### How the Two Parts Work Together
 
@@ -158,6 +215,23 @@ Input leaf image
 
 That is the key theoretical idea behind the repository: classification and quantification are related, but they do not need to be solved by exactly the same mechanism.
 
+The broader architecture can also be read like this:
+
+```text
+Leaf image
+    -> augmentation and normalization
+    -> EfficientNet-B0 backbone
+    -> classification head
+    -> softmax probabilities
+
+Leaf image
+    -> HSV conversion
+    -> green and lesion masks
+    -> coverage percentages
+```
+
+One branch learns from data. The other encodes explicit color rules. Together they provide a more educational and interpretable solution than either branch alone.
+
 ### How Success Was Measured
 
 Because the classes are imbalanced, accuracy alone would hide important failures. The evaluation therefore emphasizes:
@@ -168,6 +242,14 @@ Because the classes are imbalanced, accuracy alone would hide important failures
 - confusion matrices to reveal which diseases look similar to the model
 
 For segmentation, the project uses visual inspection and coverage percentages rather than IoU-style metrics, because the dataset does not provide pixel-level ground-truth masks.
+
+It helps to read the classification metrics this way:
+
+- precision asks: when the model predicts a class, how often is it correct?
+- recall asks: when that class is truly present, how often does the model find it?
+- F1-score balances the two, so a model cannot look good by optimizing only one side
+
+Macro F1 is especially important here because it treats each class equally, even when one class has far fewer examples than another. In an imbalanced dataset, that makes it more informative than accuracy alone.
 
 ## Results
 
