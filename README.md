@@ -144,6 +144,74 @@ Its value is instead in being technically sound, coherent with the challenge goa
 - connects predictions back to the original challenge requirements
 - acknowledges both strengths and limitations
 
+## Alignment With Evaluation Criteria
+
+The challenge defines five evaluation criteria. This project addresses each one explicitly.
+
+### 1. Code Quality
+
+The implementation is organized as a small, reproducible workflow rather than a single monolithic script.
+
+- separate notebooks for inspection, exploratory analysis, training, and evaluation
+- saved artifacts in `models/` and `docs/`
+- clear dependency list in `requirements.txt`
+- reusable inference function combining classification and segmentation
+
+The goal is not just to make the model work once, but to make the pipeline understandable and repeatable.
+
+### 2. Technical Foundation
+
+The core modeling choices are technically standard and well justified for this problem:
+
+- transfer learning with EfficientNet-B0 for image classification
+- stratified data splitting
+- `WeightedRandomSampler` and class-weighted loss to address heavy imbalance
+- multiple evaluation metrics, including macro F1, instead of raw accuracy alone
+- HSV-based segmentation as a lightweight and interpretable quantification method
+
+This makes the project technically sound even if it is not methodologically novel.
+
+### 3. Solution Creativity
+
+The project is not presented as a novel research contribution, since PlantVillage has been used extensively in public repositories and tutorials. The creative part is in how the challenge was framed and combined:
+
+- disease classification for diagnosis
+- rule-based lesion/leaf-area estimation for quantification
+- a single end-to-end demo that reports both category and visible damage estimate
+
+That combination makes the output more useful than a classifier alone while staying realistic for the available data.
+
+### 4. Communication Skills
+
+The repository is designed to communicate the work clearly to a reviewer, not only to run code.
+
+- the README explains the problem, approach, results, and limitations in plain language
+- visual outputs are embedded and interpreted, not just attached
+- notebooks show the progression from exploration to training to evaluation
+- the methodology section is transparent about both tooling and originality
+
+This matters because a challenge solution should be understandable by someone who did not build it.
+
+### 5. Practical Implementation Considerations
+
+This is a prototype with a credible implementation path, but it is not yet a production deployment.
+
+Practical strengths:
+
+- runs in Python with common open-source libraries
+- produces model outputs that are easy to interpret
+- stores checkpoints and figures as deliverable artifacts
+- can be extended into a small app or upload-based tool
+
+Practical constraints:
+
+- current reported metrics come from the notebook quick-run setup, not a full training cycle
+- PlantVillage images are controlled and cleaner than real field conditions
+- HSV segmentation is sensitive to lighting, background, and color variation
+- real deployment would require validation on farm images, better calibration, and likely a learned segmentation model
+
+In other words, the solution is practical as a challenge prototype and educational baseline, but more engineering and field validation would be needed before real agricultural use.
+
 ### Segmentation Examples
 
 ![Segmentation results](docs/segmentation_results.png)
