@@ -17,6 +17,10 @@ The dataset looks friendly at first glance: clean backgrounds, labeled folders, 
 - It includes 20,638 images in total.
 - The largest class is about 21 times bigger than the smallest one.
 
+![Class distribution](docs/class_distribution.png)
+
+This plot makes the imbalance visible. A few classes dominate the dataset, while others appear only rarely. That is why the training pipeline uses weighted sampling and class-weighted loss instead of relying on raw accuracy alone.
+
 That imbalance matters. A model can look accurate overall while still doing a poor job on rare diseases. Because of that, the project was designed around two goals:
 
 1. Learn a strong visual representation with transfer learning.
@@ -92,6 +96,18 @@ That tells a believable story:
 - It is strongest on classes with distinctive visual patterns.
 - It still struggles when symptoms overlap or when data is scarce.
 
+### Training Behavior
+
+![Training curves](docs/training_curves.png)
+
+The training curves show a healthy learning pattern. Accuracy rises sharply after the backbone is unfrozen, while validation loss continues to fall instead of diverging. That suggests the model is learning useful visual features rather than simply overfitting the small quick-run subset.
+
+### Confusion Matrix
+
+![Confusion matrix](docs/confusion_matrix.png)
+
+The confusion matrix shows that many classes are predicted cleanly, especially the healthier and more visually distinctive categories. The main errors are concentrated in disease pairs with similar texture and color patterns, which is exactly where we would expect a compact baseline model to struggle.
+
 ## Why This Addresses the Challenge
 
 The original challenge asked for detection and quantification of plant characteristics. This repository answers that in two layers:
@@ -108,6 +124,26 @@ This is still a prototype, not a field-ready agronomic system. The segmentation 
 - awareness of limitations
 - a path toward improvement
 
+## Methodology
+
+This solution was developed with support from a combination of proprietary LLM models used as engineering assistants during the workflow. In practice, those models helped accelerate tasks such as structuring notebooks, refining explanations, debugging implementation details, and improving documentation quality.
+
+That said, the final pipeline is still grounded in standard, testable computer vision practice:
+
+- transfer learning with EfficientNet-B0
+- imbalance handling with weighted sampling and class-weighted loss
+- reproducible notebook-based training and evaluation
+- classical HSV segmentation for interpretable leaf and lesion estimates
+
+It is also important to be transparent about originality. The PlantVillage dataset has been publicly available for years, and many open repositories, notebooks, and tutorials already address plant disease classification on it. Because of that, this specific solution is unlikely to be fully original in the sense of proposing a brand-new modeling idea.
+
+Its value is instead in being technically sound, coherent with the challenge goals, and clearly documented. The contribution here is not claiming novelty, but showing a credible end-to-end implementation that:
+
+- trains successfully
+- produces measurable results
+- connects predictions back to the original challenge requirements
+- acknowledges both strengths and limitations
+
 ## Visual Outputs
 
 Generated artifacts are saved in `docs/`:
@@ -118,6 +154,18 @@ Generated artifacts are saved in `docs/`:
 - `inference_demo.png`
 
 These figures help tell the story from training behavior to final predictions and visual lesion estimation.
+
+### Segmentation Examples
+
+![Segmentation results](docs/segmentation_results.png)
+
+These examples illustrate the second half of the challenge: quantification. The green mask estimates visible healthy leaf tissue, while the red/brown mask estimates lesion area. On healthy leaves, most pixels stay in the green region; on diseased leaves, the lesion mask expands over damaged areas. The method is simple, but it gives an interpretable visual estimate of symptom coverage.
+
+### End-to-End Inference Demo
+
+![Inference demo](docs/inference_demo.png)
+
+This is the most practical output of the project. Each panel combines classification and quantification in one step: true label, predicted label, confidence, estimated leaf area, and estimated lesion area. Green titles indicate correct predictions, while red titles highlight mistakes. This makes it easy to see both what the model gets right and how it behaves when it is uncertain or confused.
 
 ## Repository Guide
 
