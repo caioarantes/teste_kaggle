@@ -311,6 +311,8 @@ This is still a prototype, not a field-ready agronomic system. The segmentation 
 
 ## Methodology
 
+All metrics, plots, and visual outputs reported in this README — including test accuracy, F1 scores, training curves, confusion matrices, segmentation examples, and the inference demo — are the actual outputs produced by running the notebooks in this repository. They were not simulated, manually constructed, or estimated post-hoc. Any reader can reproduce them by following the steps in the [How To Run](#how-to-run) section.
+
 This solution was developed with support from a combination of proprietary LLM models used as engineering assistants during the workflow. In practice, those models helped accelerate tasks such as structuring notebooks, refining explanations, debugging implementation details, and improving documentation quality.
 
 That said, the final pipeline is still grounded in standard, testable computer vision practice:
